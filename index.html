@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0d3b3f" />
+  <title>Agenda PWA</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Dependências (CDN) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.3/dist/jspdf.plugin.autotable.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <div>
+        <div class="brand-title">Agenda & Diário</div>
+        <div class="brand-sub">offline-first • grafite • azul petróleo</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn" id="btnGoCalendar">Calendário</button>
+      <button class="nav-btn" id="btnGoToday">Hoje</button>
+      <button class="nav-btn" id="btnGoSearch">Busca</button>
+      <button class="nav-btn" id="btnGoInsights">Análises</button>
+      <button class="nav-btn" id="btnGoBackup">Backup</button>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <!-- CALENDÁRIO -->
+    <section id="viewCalendar" class="view">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Calendário Mensal</div>
+          <div class="panel-actions">
+            <button class="btn ghost" id="btnPrevMonth">◀</button>
+            <div class="chip" id="monthLabel">—</div>
+            <button class="btn ghost" id="btnNextMonth">▶</button>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays" id="weekdays"></div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <div class="hint">
+          Toque em um dia para abrir a página diária. Os marcadores indicam: 📝 anotação, 📷 fotos.
+        </div>
+      </div>
+    </section>
+
+    <!-- DIA -->
+    <section id="viewDay" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title" id="dayTitle">Dia</div>
+            <div class="panel-sub" id="daySub">—</div>
+          </div>
+
+          <div class="panel-actions wrap">
+            <button class="btn" id="btnBackToCalendar">Calendário</button>
+            <button class="btn ghost" id="btnDayPrev">◀ Dia</button>
+            <button class="btn ghost" id="btnDayNext">Dia ▶</button>
+            <button class="btn" id="btnAddPhoto">+ Foto</button>
+            <button class="btn" id="btnPdfDay">PDF do Dia</button>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">Anotações do dia</div>
+            <textarea id="txtNotes" class="textarea" placeholder="Escreva aqui... (salva automático)"></textarea>
+
+            <div class="meta-row">
+              <div class="chip small" id="saveStatus">Salvo</div>
+              <div class="chip small" id="countsStatus">0 fotos</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Estrutura rápida (opcional)</div>
+
+            <div class="quick-grid">
+              <div class="quick">
+                <div class="quick-label">Objetivos</div>
+                <textarea id="txtGoals" class="textarea small" placeholder="3 objetivos do dia..."></textarea>
+              </div>
+              <div class="quick">
+                <div class="quick-label">Aprendizados</div>
+                <textarea id="txtLearn" class="textarea small" placeholder="O que aprendi hoje..."></textarea>
+              </div>
+              <div class="quick">
+                <div class="quick-label">Dificuldades</div>
+                <textarea id="txtHard" class="textarea small" placeholder="Pontos críticos / desafios..."></textarea>
+              </div>
+              <div class="quick">
+                <div class="quick-label">Próximo passo</div>
+                <textarea id="txtNext" class="textarea small" placeholder="O que fica para amanhã..."></textarea>
+              </div>
+            </div>
+
+            <div class="hint">
+              Esses campos ajudam muito a gerar diário de campo e análise semanal/mensal sem esforço.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Fotos anexadas</div>
+          <input id="photoInput" type="file" accept="image/*" multiple class="hidden" />
+          <div id="photoGrid" class="photo-grid"></div>
+          <div class="hint">
+            Dica: você pode anexar comprovantes, quadro da sala, rascunhos, documentos, qualquer evidência do dia.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BUSCA -->
+    <section id="viewSearch" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Busca</div>
+          <div class="panel-actions">
+            <input id="searchInput" class="input" placeholder="Buscar por palavra nas anotações..." />
+            <button class="btn" id="btnSearch">Buscar</button>
+            <button class="btn ghost" id="btnPdfRange">PDF Período</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="filter">
+            <div class="filter-label">De</div>
+            <input type="date" id="dateFrom" class="input" />
+          </div>
+          <div class="filter">
+            <div class="filter-label">Até</div>
+            <input type="date" id="dateTo" class="input" />
+          </div>
+          <div class="filter">
+            <div class="filter-label">Atalho</div>
+            <div class="row">
+              <button class="btn ghost" id="btnThisWeek">Esta semana</button>
+              <button class="btn ghost" id="btnThisMonth">Este mês</button>
+              <button class="btn ghost" id="btnThisSemester">Semestre</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="searchResults" class="list"></div>
+      </div>
+    </section>
+
+    <!-- ANÁLISES -->
+    <section id="viewInsights" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Análises (semana / mês)</div>
+          <div class="panel-actions">
+            <button class="btn ghost" id="btnInsightsWeek">Semana</button>
+            <button class="btn ghost" id="btnInsightsMonth">Mês</button>
+            <button class="btn" id="btnPdfMonth">PDF do Mês</button>
+          </div>
+        </div>
+
+        <div class="insights">
+          <div class="card">
+            <div class="card-title" id="insTitle">Resumo</div>
+            <div id="insBody" class="ins-body">—</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Dias recentes</div>
+            <div id="insRecent" class="list compact"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BACKUP -->
+    <section id="viewBackup" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Backup / Restauração (Google Drive friendly)</div>
+          <div class="panel-actions">
+            <button class="btn" id="btnMakeBackup">Gerar Backup (.zip)</button>
+            <button class="btn ghost" id="btnRestorePick">Restaurar Backup</button>
+            <input id="restoreInput" type="file" accept=".zip" class="hidden" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Como usar com Google Drive</div>
+          <div class="hint">
+            1) Clique em <b>Gerar Backup</b> e salve o arquivo na pasta do Drive.<br/>
+            2) No tablet/celular, baixe/abra esse mesmo arquivo e use <b>Restaurar Backup</b>.<br/>
+            Resultado: sua “memória” via Drive, sem depender de login dentro do app (mais estável).
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Status</div>
+          <div id="backupStatus" class="hint">—</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer-text" id="footerStatus">Pronto.</div>
+  </footer>
+</body>
+</html>
